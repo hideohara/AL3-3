@@ -2,9 +2,19 @@
 #include "TextureManager.h"
 #include <cassert>
 
+#include "AxisIndicator.h"
+
+#include "PrimitiveDrawer.h"
+
+
 GameScene::GameScene() {}
 
-GameScene::~GameScene() {}
+// デストラクタ
+GameScene::~GameScene() {
+	delete model_;
+	delete debugCamera_;
+
+}
 
 void GameScene::Initialize() {
 
@@ -12,9 +22,36 @@ void GameScene::Initialize() {
 	input_ = Input::GetInstance();
 	audio_ = Audio::GetInstance();
 	debugText_ = DebugText::GetInstance();
+
+	// ファイル名を指定してテクスチャを読み込む
+	textureHandle_ = TextureManager::Load("player.png");
+
+	// 3Dモデルの生成
+	model_ = Model::Create();
+
+	// ワールドトランスフォームの初期化
+	worldTransform_.Initialize();
+	// ビュープロジェクションの初期化
+	viewProjection_.Initialize();
+
+	// デバッグカメラの生成
+	debugCamera_ = new DebugCamera(1280, 720);
+
+
+	// 軸方向表示の表示を有効にする
+	AxisIndicator::GetInstance()->SetVisible(true);
+	// 軸方向表示が参照するビュープロジェクションを指定する（アドレス渡し）
+	AxisIndicator::GetInstance()->SetTargetViewProjection(&debugCamera_->GetViewProjection());
+
+	// ライン描画が参照するビュープロジェクションを指定する（アドレス渡し）
+	PrimitiveDrawer::GetInstance()->SetViewProjection(&debugCamera_->GetViewProjection());
+
 }
 
-void GameScene::Update() {}
+void GameScene::Update() {
+	// デバッグカメラの更新
+	debugCamera_->Update();
+}
 
 void GameScene::Draw() {
 
@@ -42,6 +79,13 @@ void GameScene::Draw() {
 	/// <summary>
 	/// ここに3Dオブジェクトの描画処理を追加できる
 	/// </summary>
+	model_->Draw(worldTransform_, debugCamera_->GetViewProjection(), textureHandle_);
+
+	// ライン描画が参照するビュープロジェクションを指定する（アドレス渡し）
+	for (float i = 0; i < 10; i++) {
+		PrimitiveDrawer::GetInstance()->DrawLine3d({ 0,i,0 }, { 10,i,0 }, { 1,0,0,1 });
+	}
+
 
 	// 3Dオブジェクト描画後処理
 	Model::PostDraw();
